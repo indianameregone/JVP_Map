@@ -1,6 +1,11 @@
 import folium
-import webbrowser
+from folium import plugins
+import ipywidgets
+import geocoder
+import geopy
+import numpy as np
 import pandas as pd
+from vega_datasets import data as vds
 
 
 #Coordenadas del mapa a localizar
@@ -20,6 +25,8 @@ caños.add_to(mapa)
 clientes.add_to(mapa)
 
 folium.LayerControl().add_to(mapa)
+
+folium.ClickForMarker
 
 #con pandas leo el mapa
 caños_map   = pd.read_excel('Modelo de datos.xlsx',sheet_name='caños')
@@ -57,7 +64,13 @@ for index,row in cli_map.iterrows():
     </html>
     """).add_to(clientes)
 
+draw = plugins.Draw(export=True)
+draw.add_to(mapa)
+geoJson = pd.read_json('data.geojson')
+newClient_lat = geoJson["features"][0]["geometry"]["coordinates"][0]
+newClient_lon=  geoJson["features"][0]["geometry"]["coordinates"][1]
 
+print(cli_map)
 
 #se guarda en un archivo .html que sobreescribimos segun modificaciones
 mapa.save('mimapa.html')
