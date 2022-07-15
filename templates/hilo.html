@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Id de Hilo{% endblock%}
+
+{% block subtitle %}Elija un ID de hilo{% endblock%}
+
+{% block content %}
+
+<form action="buffer" method="post">
+    <h3 name = "inicio">ID de Inicio: {{ inicio }}</h3>
+    <select name="hilo">
+        {% for i in hilo %}
+        <option name="hilo">{{ i }}</option>
+        {% endfor %}
+    </select>
+    <p><input type="submit" value="submit" /></p>
+</form>
+
+
+{% endblock %}

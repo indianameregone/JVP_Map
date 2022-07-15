@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Id de Inicio{% endblock%}
+
+{% block subtitle %}Elija un ID{% endblock%}
+
+{% block content %}
+<form action="hilo" method="post">
+    <select name="inicio">
+        {% for i in inicio %}
+        <option name="inicio">{{ i }}</option>
+        {% endfor %}
+    </select>
+    <p><input type="submit" value="submit" /></p>
+</form>
+{% endblock %}

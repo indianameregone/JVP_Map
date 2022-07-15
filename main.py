@@ -1,80 +1,115 @@
 import folium
-from folium import plugins
-import ipywidgets
-import geocoder
-import geopy
-import numpy as np
 import pandas as pd
-from vega_datasets import data as vds
+import pymssql
 
+
+conn    = pymssql.connect(
+                'jvpdatos.database.windows.net',
+                'jcverni@jvpsa.onmicrosoft.com@jvpdatos',
+                'Juan11121923',
+                'Laboratorio'
+            )
+cursor  = conn.cursor()
+
+
+mex_objetos = 'SELECT lat,lon FROM tbl_XYT_Mex_Objetos'
+mex_tramos  = 'SELECT Lati,Loni,Latf,Lonf FROM xytMexAutoCableTramos'
+mex_cierre  = 'SELECT Lat,Lon FROM xytMexAutoCierre'
+mex_empalme = 'SELECT Lat,Lon FROM xytMexAutoEmpalme'
+mex_hilo    = 'SELECT Lat,Lon FROM xytMexAutoHilo'
+mex_sitio   = 'SELECT Lat,Lon FROM xytMexAutoSitio'
+mex_tubo    = 'SELECT Lat,Lon FROM xytMexAutoTubo'
+
+latlon  = pd.read_sql(mex_tramos,conn)
+obj     = pd.read_sql(mex_objetos,conn)
+close   = pd.read_sql(mex_cierre,conn) 
+emp     = pd.read_sql(mex_empalme,conn) 
+dread   = pd.read_sql(mex_hilo,conn) 
+site    = pd.read_sql(mex_sitio,conn) 
+pipe    = pd.read_sql(mex_tubo,conn) 
 
 #Coordenadas del mapa a localizar
-lat     = -32.37092699233746  
-lon     = -59.93105965747769
+lat     = 19.429708131780036 
+lon     = -99.13942199005166
 
-mapa    = folium.Map(location=[lat,lon],zoom_start=16) #zoom 13 da la perspectiva del mapa desde el aire
+mapa    = folium.Map(location=[lat,lon],zoom_start=10) #zoom 13 da la perspectiva del mapa desde el aire
 
 #Capas de mapa
 folium.TileLayer('Stamen Terrain').add_to(mapa)
 folium.TileLayer('Cartodb Positron').add_to(mapa)
 folium.TileLayer('Cartodb dark_matter').add_to(mapa)
 
-caños = folium.FeatureGroup(name='caños')
-clientes = folium.FeatureGroup(name='clientes')
-caños.add_to(mapa)
-clientes.add_to(mapa)
+cable    = folium.FeatureGroup(name='cable')
+objetos = folium.FeatureGroup(name='objeto')
+cierre  = folium.FeatureGroup(name='cierre') 
+empalme = folium.FeatureGroup(name='empalme')
+hilo    = folium.FeatureGroup(name='hilo')
+sitio   = folium.FeatureGroup(name='sitio')
+tubo    = folium.FeatureGroup(name='tubo')
+
+cable.add_to(mapa)
+objetos.add_to(mapa)
+cierre.add_to(mapa)
+empalme.add_to(mapa)
+hilo.add_to(mapa)
+sitio.add_to(mapa)
+tubo.add_to(mapa)
+
 
 folium.LayerControl().add_to(mapa)
 
-folium.ClickForMarker
+i = 0
+lati = latlon['Lati']
+loni = latlon['Loni']
+latf = latlon['Latf']
+lonf = latlon['Lonf']
 
-#con pandas leo el mapa
-caños_map   = pd.read_excel('Modelo de datos.xlsx',sheet_name='caños')
-cli_map     = pd.read_excel('Modelo de datos.xlsx',sheet_name='cliente')
-for index,row in caños_map.iterrows():
-    folium.PolyLine([(row['LatI'],row['LonI']),(row['LatF'],row['LonF'])],fill=True,color='green',weight=3,popup="Red de caños").add_to(caños)
+for e in lati:
+    try: 
+        latI = float(lati[i])    
+        lonI = float(loni[i])
+        latF = float(latf[i])
+        lonF = float(lonf[i])
+        
+        folium.PolyLine([(latI,lonI),(latF,lonF)],fill=True,color='red',weight=3).add_to(cable)
+    except:
+        pass
+    i +=1
 
-for index,row in cli_map.iterrows():
-    folium.Marker([row['Lat'],row['Lon']],popup=row['Num_Cli'],tooltip=f"""
-    <!DOCTYPE html>
-    <html>
-        <head>
-            <title>Clientes del Mapa</title>
-        </head>
-        <body>
-            <table border = '3' cellpadding ='5' cellspacing = '5'>
-                <tr>
-                <tr>
-                    <th style='text-align:center;background-color:#ccccff'>Codigo</th>
-                    <th style='text-align:center;background-color:#ccccff'>Nombre</th>
-                    <th style='text-align:center;background-color:#ccccff'>Direccion</th>
-                    <th style='text-align:center;background-color:#ccccff'>Numero</th>
-                    <th style='text-align:center;background-color:#ccccff'>Telefono</th>
-                    <th style='text-align:center;background-color:#ccccff'>Mail</th>
-                </tr>
-                <td style='text-align:center'>{row['Num_Cli']}</td>
-                <td style='text-align:center'>{row['Titular']}</td>
-                <td style='text-align:center'>{row['Direccion']}</td>
-                <td style='text-align:center'>{row['Numero']}</td>
-                <td style='text-align:center'>{row['Telefono']}</td>
-                <td style='text-align:center'>{row['Mail']}</td>
-                </tr>
-            </table>
-        </body>
-    </html>
-    """).add_to(clientes)
+def parts(object,color,capa):
+    lati = object['Lat']
+    loni = object['Lon']
+    i = 0
+    for e in lati:
+        try: 
+            latI = float(lati[i])    
+            lonI = float(loni[i])
+                    
+            folium.Circle(location=[latI,lonI],radius=100, fill= True,color=color).add_to(capa)
+        except:
+            pass
+        i += 1
 
-draw = plugins.Draw(export=True)
-draw.add_to(mapa)
-geoJson = pd.read_json('data.geojson')
-newClient_lat = geoJson["features"][0]["geometry"]["coordinates"][0]
-newClient_lon=  geoJson["features"][0]["geometry"]["coordinates"][1]
+def partes(object,color,capa):
+    lati = object['lat']
+    loni = object['lon']
+    j = 0
+    for e in lati:
+        try: 
+            latI = float(lati[j])    
+            lonI = float(loni[j])
+                    
+            folium.Circle(location=[latI,lonI],radius=100, fill= True,color=color).add_to(capa)
+        except:
+            pass
+        j += 1
 
-print(cli_map)
+partes(obj,'green',objetos)
+parts(close,'blue',cierre)
+parts(emp,'pink',empalme)
+parts(dread,'yellow',hilo)
+parts(site,'grey',sitio)
+parts(pipe,'black',tubo)
 
 #se guarda en un archivo .html que sobreescribimos segun modificaciones
 mapa.save('mimapa.html')
-
-
-
-
